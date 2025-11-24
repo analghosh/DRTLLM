@@ -1,0 +1,141 @@
+TABLE: case_detail
+DESCRIPTION: This table stores details of court case filings, registration, parties, disposal, and document uploads.
+ 
+COLUMNS:
+    diary_no | string | Unique diary number assigned to the case
+    filing_no | string | Filing number of the case
+    case_no | string | Court case number
+    case_type | integer | Type/category of the case
+    dt_of_filing | date | Date when case was filed
+    regis_date | date | Date when case was registered
+    pet_name | string | Petitioner name
+    res_name | string | Respondent name
+    status | string | Current status of the case
+    notification_date | date | Date of issued notification
+    compliance_date | date | Date when compliance happened
+    objection_status | string | Whether objection is raised
+    defects | string | Defects identified in the case
+    generated_date | date | Backend generated date
+    order_uploaded_date | date | Date when order was uploaded
+    daily_order_upload | string | Daily order upload status
+    final_order_upload | string | Final order upload status
+    master_doc_name | string | Master document filename
+    doc_name | string | Document name
+    document_upload_url | string | Document path/URL
+    disposal_date | date | Date when case was disposed
+    disposal_diffdays | integer | Days between filing & disposal
+    drt_name | string | Tribunal name
+    filing_no_rank_no | integer | Ranking of filing number
+ 
+RELATIONSHIPS:
+    None
+ 
+ 
+TABLE: user_master
+DESCRIPTION: Stores details of system users accessing the case system.
+ 
+COLUMNS:
+    user_id | integer | Unique user identifier
+    username | string | Login username
+    email | string | Email ID of the user
+    role | string | Role of the user (admin, clerk, officer)
+    created_at | date | Account creation date
+    updated_at | date | Last update timestamp
+ 
+RELATIONSHIPS:
+    case_detail.filing_no -> user_master.user_id
+
+
+
+
+
+
+
+Basic count and filters
+How many cases are from State Bank of India?
+
+How many cases are from IDFC First Bank Ltd?
+
+How many cases belong to DRT Chandigarh1?
+
+How many cases were filed in 2021?
+
+How many cases were disposed in 2024?
+
+By party names (petitioner / respondent)
+Show all cases where the petitioner is "M/S HARI OM MEDICAL STORE".
+
+Show all cases where the respondent is "STATE BANK OF INDIA".
+
+List all cases where the petitioner is "SURESH KUMAR".
+
+List all cases where the respondent is "THE BAGHAT URBAN CO OPERATIVE BANK LTD".
+
+Show all cases filed by "Nazir Hussain".
+
+Date and duration checks
+Show all cases filed between 2021-01-01 and 2021-12-31.
+
+Show all cases with disposal_date between 2024-04-01 and 2024-12-31.
+
+For diary number 1258/2021, show filing date, disposal date and disposal_diffdays.
+
+List cases where disposal_diffdays is greater than 20.
+
+How many cases have disposal_date in 2025?
+
+Status and objection / defects
+Show all cases whose status is 'D'.
+
+List cases where objection_status is 'N'.
+
+Show all cases where defects is not null.
+
+List cases where daily_order_upload is not null but final_order_upload is null.
+
+Show all cases which have Vakalatnama as master_doc_name.
+
+Documents and URLs
+For diary number 849/2021, show master_doc_name, doc_name and document_upload_url.
+
+Show all cases where doc_name contains 'Application'.
+
+Show all cases where doc_name contains 'Statement of Account'.
+
+List all cases where document_upload_url contains '/uploads/onlinetemp/'.
+
+Show cases where master_doc_name is 'Any other Document'.
+
+DRT-wise checks
+Show all cases belonging to DRT 'chandigarh1'.
+
+How many cases in DRT chandigarh1 were disposed in 2024?
+
+Show all cases for DRT chandigarh1 where notification_date is not null.
+
+Show all cases for DRT chandigarh1 where compliance_date is not null.
+
+Show all cases in DRT chandigarh1 where filing_no_rank_no is greater than 40.
+
+Specific diary / filing / case numbers
+Show full details for diary number 118/2018.
+
+Show full details for diary number 849/2021.
+
+Show full details for diary number 1016/2022.
+
+Show full details for filing_no 040110012582021.
+
+Show full details for case_no 400700001052021.
+
+Sanity checks on duplicates
+For diary number 118/2018, list all rows and highlight differences in master_doc_name and doc_name.
+
+For diary number 1305/2015, show how many rows exist and list their doc_name values.
+
+For diary number 1016/2022, list all distinct master_doc_name values and doc_name values.
+
+Mixed natural-language questions
+For State Bank of India cases in DRT chandigarh1, how many were disposed in 2024?
+
+Among cases where petitioner is an individual (not starting with 'M/S'), how many were filed after 2020?
