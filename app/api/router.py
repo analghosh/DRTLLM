@@ -8,10 +8,17 @@ class ChatRequest(BaseModel):
     question: str
     chat_history: list | None = None
 
+# @router.post("/api/chat")
+# async def chat_endpoint(payload: ChatRequest):
+#     bot = chatbot_instances["DefaultBot"]
+#     history = payload.chat_history or []
+#     result = await bot.process_query(payload.question, chat_history=history)
+#     return {"success": result["success"], "response": result["response"]}
+
+
 @router.post("/api/chat")
 async def chat_endpoint(payload: ChatRequest):
     bot = chatbot_instances["DefaultBot"]
     history = payload.chat_history or []
     result = await bot.process_query(payload.question, chat_history=history)
-    return {"success": result["success"], "response": result["response"]}
-
+    return result

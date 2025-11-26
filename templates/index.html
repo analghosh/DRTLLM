@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Judiciary DRT Bot</title>
+  <title>Judiciary DRT Case Assistant</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -152,6 +152,34 @@
       font-size: 14px;
     }
 
+    /* table styling inside bot messages */
+    .message.bot table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px;
+      background-color: #ffffff;
+    }
+
+    .message.bot th,
+    .message.bot td {
+      border: 1px solid #e5e7eb;
+      padding: 4px 6px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .message.bot th {
+      background-color: #f3f4f6;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .table-wrapper {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
     @media (max-width: 640px) {
       header h1 {
         font-size: 16px;
@@ -160,6 +188,10 @@
       .chat-container {
         border-radius: 0;
         box-shadow: none;
+      }
+
+      .message {
+        max-width: 100%;
       }
     }
   </style>
@@ -178,16 +210,17 @@
         <div>
           <div class="chat-header-title">DRT Case Chatbot</div>
           <div class="chat-header-subtitle">
-            Ask about diary number, case status, petitioner/respondent, DRT name, dates, etc.
+            Ask about diary number, case status, petitioner/respondent, DRT name, dates, documents, etc.
           </div>
         </div>
       </div>
 
       <div id="messages" class="messages">
-        <div class="message system">
-          Ask me things like: "What is the status of diary number 12345?" or
-          "Show all cases for DRT Mumbai disposed in 2024".
-        </div>
+        <!-- <div class="message.system">
+          Example queries: "How many cases are from State Bank of India?"
+          · "Show all cases belonging to DRT 'chandigarh1'"
+          · "Show all cases where doc_name contains 'Application'".
+        </div> -->
       </div>
 
       <div class="input-container">
@@ -217,6 +250,48 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
+    function addTableMessage(rows) {
+      if (!rows || !rows.length) return;
+
+      const container = document.createElement("div");
+      container.classList.add("message", "bot");
+
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("table-wrapper");
+
+      const table = document.createElement("table");
+
+      const cols = Object.keys(rows[0] || {});
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      cols.forEach((col) => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        cols.forEach((col) => {
+          const td = document.createElement("td");
+          const val = row[col];
+          td.textContent =
+            val === null || val === undefined ? "" : String(val);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      wrapper.appendChild(table);
+      container.appendChild(wrapper);
+      messagesEl.appendChild(container);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
     async function sendMessage() {
       const text = inputEl.value.trim();
       if (!text) return;
@@ -224,10 +299,8 @@
       addMessage(text, "user");
       inputEl.value = "";
       inputEl.focus();
-
       sendButton.disabled = true;
 
-      // update local chat history
       chatHistory.push({ role: "user", content: text });
 
       try {
@@ -238,7 +311,6 @@
           },
           body: JSON.stringify({
             question: text,
-            // you can pass history if your backend uses it
             chat_history: chatHistory,
           }),
         });
@@ -250,9 +322,20 @@
         }
 
         const data = await response.json();
-        const botText = data.response || "No response received.";
 
+        // summary / message from backend
+        const botText =
+          data.response ||
+          (data.success
+            ? "Query completed."
+            : "Sorry, I could not process that request.");
         addMessage(botText, "bot");
+
+        // if backend sent rows, render as table
+        if (Array.isArray(data.rows) && data.rows.length > 0) {
+          addTableMessage(data.rows);
+        }
+
         chatHistory.push({ role: "assistant", content: botText });
       } catch (err) {
         console.error(err);

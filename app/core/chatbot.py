@@ -354,105 +354,170 @@ class Chatbot:
         dynamic_response = await self.generate_dynamic_response(question, chat_history)
         return {"success": True, "response": dynamic_response}
 
+    
+    # async def handle_database_query(
+    #     self,
+    #     questions: str,
+    #     chat_history: list = None,
+    # ) -> dict:
+    #     """
+    #     DRT‑only DB handler:
+    #     1. Generate SQL for the question(s).
+    #     2. Filter to safe + case_details_2025‑only queries.
+    #     3. Execute them.
+    #     4. Convert to natural language answer.
+    #     """
+    #     if chat_history is None:
+    #         chat_history = []
+    #     self.logger.info(f"Handling database query for questions: {questions}")
+    #     try:
+    #         # step 1: generate queries
+    #         queries = await asyncio.to_thread(self.write_query, questions, chat_history)
+
+    #         # step 2 & 3: validate + execute
+    #         tasks = []
+    #         for item in queries:
+    #             if not self.is_query_allowed(item.query):
+    #                 self.logger.warning(f"Blocked unsafe or invalid query: {item.query}")
+    #                 tasks.append(
+    #                     asyncio.sleep(0, result=("Blocked query for safety.", None))
+    #                 )
+    #             else:
+    #                 tasks.append(self.execute_query(item.query))
+
+    #         raw_results = await asyncio.gather(*tasks)
+
+    #         results: List[str] = []
+    #         valid_queries: List[QueryItem] = []
+    #         for item, (ok, result) in zip(queries, raw_results):
+    #             if ok:
+    #                 valid_queries.append(item)
+    #                 results.append(result)
+    #             else:
+    #                 results.append(str(result))
+
+    #         if valid_queries:
+    #             combined_answer = await self.generate_answer(
+    #                 questions,
+    #                 valid_queries,
+    #                 results,
+    #                 chat_history=chat_history,
+    #             )
+    #             self.logger.info("Database query handled successfully.")
+    #             return {"success": True, "response": combined_answer}
+
+    #         self.logger.warning("No valid queries found.")
+    #         return {
+    #             "success": False,
+    #             "response": "Sorry, I could not find a safe query to run for that request. Please provide more specific DRT case details.",
+    #         }
+    #     except Exception as e:
+    #         self.logger.error(f"Error handling database query: {str(e)}")
+    #         log_and_raise(
+    #             e,
+    #             "Error processing database queries. Please check the input and database configuration.",
+    #         )
+    #         return {
+    #             "success": False,
+    #             "response": "An unexpected error occurred while processing your query. Please try again.",
+    #         }
+
+
     async def handle_database_query(
-        self,
-        questions: str,
-        chat_history: list = None,
+        self, questions: str, chat_history: list = None,
     ) -> dict:
-        """
-        DRT‑only DB handler:
-        1. Generate SQL for the question(s).
-        2. Filter to safe + case_details_2025‑only queries.
-        3. Execute them.
-        4. Convert to natural language answer.
-        """
         if chat_history is None:
             chat_history = []
         self.logger.info(f"Handling database query for questions: {questions}")
         try:
-            # step 1: generate queries
             queries = await asyncio.to_thread(self.write_query, questions, chat_history)
 
-            # step 2 & 3: validate + execute
-            tasks = []
+            all_rows = []  # list of dicts from DB
             for item in queries:
                 if not self.is_query_allowed(item.query):
                     self.logger.warning(f"Blocked unsafe or invalid query: {item.query}")
-                    tasks.append(
-                        asyncio.sleep(0, result=("Blocked query for safety.", None))
-                    )
-                else:
-                    tasks.append(self.execute_query(item.query))
+                    continue
 
-            raw_results = await asyncio.gather(*tasks)
+                ok, result = await self.execute_query(item.query)
+                if not ok:
+                    self.logger.warning(f"Query execution failed for: {item.query}")
+                    continue
 
-            results: List[str] = []
-            valid_queries: List[QueryItem] = []
-            for item, (ok, result) in zip(queries, raw_results):
-                if ok:
-                    valid_queries.append(item)
-                    results.append(result)
-                else:
-                    results.append(str(result))
+                # result from SQLDatabase._execute is usually a list of dicts or rows
+                # normalize to list of dicts
+                if isinstance(result, list):
+                    all_rows.extend(result)
 
-            if valid_queries:
-                combined_answer = await self.generate_answer(
-                    questions,
-                    valid_queries,
-                    results,
-                    chat_history=chat_history,
-                )
-                self.logger.info("Database query handled successfully.")
-                return {"success": True, "response": combined_answer}
+            if not all_rows:
+                return {
+                    "success": False,
+                    "response": "No data was found for this request.",
+                    "rows": [],
+                }
 
-            self.logger.warning("No valid queries found.")
             return {
-                "success": False,
-                "response": "Sorry, I could not find a safe query to run for that request. Please provide more specific DRT case details.",
+                "success": True,
+                "response": f"Found {len(all_rows)} row(s).",
+                "rows": all_rows,
             }
+
         except Exception as e:
             self.logger.error(f"Error handling database query: {str(e)}")
-            log_and_raise(
-                e,
-                "Error processing database queries. Please check the input and database configuration.",
-            )
+            log_and_raise(e, "Error processing database queries.")
             return {
                 "success": False,
-                "response": "An unexpected error occurred while processing your query. Please try again.",
+                "response": "An unexpected error occurred while processing your query.",
+                "rows": [],
             }
 
-    async def process_query(
-        self,
-        question: str,
-        chat_history: list = None,
-    ) -> dict:
-        """
-        Main entry point:
-        - detects intent
-        - routes to general or database handler
-        Bot is fixed to DRT + case_details_2025, so no module/allowed_tables needed.
-        """
+
+
+    # async def process_query(
+    #     self,
+    #     question: str,
+    #     chat_history: list = None,
+    # ) -> dict:
+    #     """
+    #     Main entry point:
+    #     - detects intent
+    #     - routes to general or database handler
+    #     Bot is fixed to DRT + case_details_2025, so no module/allowed_tables needed.
+    #     """
+    #     if chat_history is None:
+    #         chat_history = []
+    #     self.logger.info(f"Processing query: {question}")
+    #     try:
+    #         # intent = await self.detect_intent(question, chat_history)
+    #         # self.logger.info(f"Detected intent: {intent}")
+
+    #         # if intent == "general_query":
+    #         #     return await self.handle_general_query(question, chat_history)
+    #         # elif intent == "database_query":
+    #         #     return await self.handle_database_query(question, chat_history)
+    #         # else:
+    #         #     self.logger.warning("Could not understand the query intent.")
+    #         #     return {
+    #         #         "success": False,
+    #         #         "response": "Sorry, I couldn't understand your query. Please try again.",
+    #         #     }
+    #         return await self.handle_database_query(question, chat_history)
+    #     except Exception as e:
+    #         self.logger.error(f"Error processing query: {str(e)}")
+    #         log_and_raise(e, "Error processing query.")
+    #         return {
+    #             "success": False,
+    #             "response": "Sorry, I couldn't process your query. Please try again.",
+    #         }
+
+
+    async def process_query(self, question: str, chat_history: list = None) -> dict:
         if chat_history is None:
             chat_history = []
         self.logger.info(f"Processing query: {question}")
-        try:
-            intent = await self.detect_intent(question, chat_history)
-            self.logger.info(f"Detected intent: {intent}")
+        return await self.handle_database_query(question, chat_history)
 
-            if intent == "general_query":
-                return await self.handle_general_query(question, chat_history)
-            elif intent == "database_query":
-                return await self.handle_database_query(question, chat_history)
-            else:
-                self.logger.warning("Could not understand the query intent.")
-                return {
-                    "success": False,
-                    "response": "Sorry, I couldn't understand your query. Please try again.",
-                }
-        except Exception as e:
-            self.logger.error(f"Error processing query: {str(e)}")
-            log_and_raise(e, "Error processing query.")
-            return {
-                "success": False,
-                "response": "Sorry, I couldn't process your query. Please try again.",
-            }
+
+
+
+
+
