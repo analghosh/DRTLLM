@@ -4,7 +4,7 @@ Columns:
 - diary_no (string) - Unique diary number assigned to the case
 - filing_no (string) - Filing number of the case
 - case_no (string) - Court case number
-- case_type (string) - Type/category of the case
+- case_type (string) - Type/category of the case Foregin key relationship for case_type table reference column is case_type_id
 - dt_of_filing (string) - Date when case was filed
 - regis_date (string) - Date when case was registered
 - pet_name (string) - Petitioner name
@@ -25,4 +25,13 @@ Columns:
 - disposal_diffdays (string) - Days between filing and disposal
 - drt_name (string) - Tribunal name
 - filing_no_rank_no (string) - Ranking of filing number
+
+Table: case_type 
+- case_type_name columns contains different cases of applications like Original Applications, standard etc.
+Columns: 
+
+- case_type_id (string) - case type master 
+- case_type_name (string) - case type name different cases
+
 """
+
