@@ -56,7 +56,7 @@ async def initialize_resources():
     shared_db = SQLDatabase(
         engine=engine,
         # Mention only the tables you want LLM to query
-        include_tables=["case_details_2025"]  
+        include_tables=["updated_case_details_2025", "case_type"]  
     )
     print("✅ Shared SQLDatabase initialized successfully.")
 
