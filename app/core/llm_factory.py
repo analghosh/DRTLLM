@@ -10,8 +10,8 @@ def create_llm() -> BaseChatModel:
     provider = os.getenv("LLM_PROVIDER", "ollama").lower()
 
     if provider == "ollama":
-        model = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
-        return ChatOllama(model=model)
+        model = os.getenv("OLLAMA_MODEL", "gpt-oss:120b")
+        return ChatOllama(model=model,temperature=0.2,)
 
     if provider == "gemini":
         api_key = os.getenv("GEMINI_API_KEY")
